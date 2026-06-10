@@ -1,6 +1,88 @@
 import { useState, useEffect } from "react"
 import "./App.css"
 
+const PASSWORD = "tiffi"
+const AUTH_KEY = "trend_scout_auth"
+
+function PasswordGate({ onUnlock }) {
+  const [input, setInput] = useState("")
+  const [shake, setShake] = useState(false)
+  const [show, setShow] = useState(false)
+
+  function attempt() {
+    if (input === PASSWORD) {
+      localStorage.setItem(AUTH_KEY, "1")
+      onUnlock()
+    } else {
+      setShake(true)
+      setInput("")
+      setTimeout(() => setShake(false), 500)
+    }
+  }
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center",
+      justifyContent: "center", background: "var(--bg)", flexDirection: "column", gap: "0"
+    }}>
+      <div style={{
+        background: "var(--card-bg)", border: "1px solid var(--border)",
+        borderRadius: "16px", padding: "40px 36px", width: "100%", maxWidth: "340px",
+        textAlign: "center"
+      }}>
+        <div style={{ fontSize: "36px", marginBottom: "16px" }}>📡</div>
+        <h1 style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 6px", color: "var(--text-primary)" }}>Trend Scout</h1>
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "0 0 28px" }}>Enter password to continue</p>
+
+        <div style={{
+          display: "flex", flexDirection: "column", gap: "12px",
+          animation: shake ? "shake 0.4s ease" : "none"
+        }}>
+          <div style={{ position: "relative" }}>
+            <input
+              type={show ? "text" : "password"}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && attempt()}
+              placeholder="Password"
+              autoFocus
+              style={{
+                width: "100%", padding: "10px 40px 10px 14px",
+                border: "1px solid var(--border)", borderRadius: "8px",
+                fontSize: "15px", background: "var(--card-bg)", color: "var(--text-primary)",
+                outline: "none", boxSizing: "border-box"
+              }}
+            />
+            <button
+              onClick={() => setShow(s => !s)}
+              style={{
+                position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--text-muted)", fontSize: "16px", padding: "0"
+              }}
+            >{show ? "🙈" : "👁"}</button>
+          </div>
+
+          <button className="refresh-btn" onClick={attempt} style={{ width: "100%", padding: "10px" }}>
+            Enter
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-6px); }
+          80% { transform: translateX(6px); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+
 const CACHE_KEY = "trend_scout_cache"
 const CACHE_TTL = 3 * 60 * 60 * 1000 // 3 hours
 
@@ -57,12 +139,7 @@ Score trendScore 1-100 based on viral velocity. Sort by trendScore descending. B
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-  "Content-Type": "application/json",
-  "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true",
-},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4000,
@@ -301,6 +378,12 @@ function LastUpdated({ cached }) {
 }
 
 export default function App() {
+  const [authed, setAuthed] = useState(() => localStorage.getItem(AUTH_KEY) === "1")
+  if (!authed) return <PasswordGate onUnlock={() => setAuthed(true)} />
+  return <TrendApp />
+}
+
+function TrendApp() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
