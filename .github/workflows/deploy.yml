@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   schedule:
-    # Auto-rebuild every day at 8am UTC (3am CST)
     - cron: '0 8 * * *'
   workflow_dispatch:
 
@@ -33,6 +32,8 @@ jobs:
           cache: npm
 
       - name: Install & Build
+        env:
+          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
         run: |
           npm install
           npm run build
